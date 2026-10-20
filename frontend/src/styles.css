@@ -1,0 +1,30 @@
+:root { --bg: #0f1020; --card: #191b33; --accent: #7c6cf0; --text: #eef; --muted: #9aa; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; }
+.vh { max-width: 900px; margin: 0 auto; padding: 24px; }
+.vh-header { display: flex; justify-content: space-between; align-items: center; }
+.vh-header h1 { margin: 0; font-size: 28px; }
+.tag { color: var(--muted); margin: 4px 0 0; }
+.pill { background: #22254a; padding: 6px 12px; border-radius: 999px; font-size: 13px; }
+.card { background: var(--card); border-radius: 16px; padding: 24px; margin-top: 20px; }
+.card h2 { margin-top: 0; }
+label { display: block; margin: 12px 0; font-size: 14px; }
+input, select, textarea { width: 100%; margin-top: 6px; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #0d0e1e; color: var(--text); }
+.row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+button { cursor: pointer; border: none; border-radius: 10px; padding: 12px 20px; font-size: 15px; margin: 8px 8px 8px 0; }
+.primary { background: var(--accent); color: #fff; }
+.primary:disabled { opacity: .5; }
+.danger { background: #e04848; color: #fff; }
+.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.qq { font-size: 22px; }
+.qmeta { color: var(--muted); font-size: 13px; }
+.followup { background: #2a2d5e; border-left: 4px solid var(--accent); padding: 12px; border-radius: 8px; margin: 12px 0; }
+.controls { margin: 12px 0; }
+.scorecard { background: #12142a; border-radius: 12px; padding: 16px; margin-top: 16px; }
+.bar { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; text-transform: capitalize; }
+.bar span { width: 200px; }
+.track { flex: 1; background: #222; border-radius: 6px; height: 10px; overflow: hidden; }
+.fill { height: 100%; background: var(--accent); }
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+details { margin: 8px 0; background: #12142a; padding: 10px; border-radius: 8px; }
+@media (max-width: 700px) { .row, .charts { grid-template-columns: 1fr; } .bar span { width: 130px; } }
