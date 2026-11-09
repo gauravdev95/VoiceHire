@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from app.config import settings
 from app.questions import QUESTIONS, ALL_TOPICS, get_questions
 from app.services.evaluator import evaluate, evaluation_to_dict
+from app.services.session_store import get_session, save_session
 from app.services.adaptive import next_question, pick_followup
 from app.services.analytics import analyze_answer
 from app.services import assemblyai_service
@@ -25,8 +26,9 @@ STATIC_DIR = Path(__file__).resolve().parents[2] / "static"  # <root>/static in 
 if STATIC_DIR.exists():
     app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
 
-# In-memory store (demo). Swap for PostgreSQL via SQLAlchemy for production.
-SESSIONS: dict[str, dict] = {}
+# Interview sessions persist in SQLite (see app/services/session_store.py)
+# so a restart no longer wipes live interviews. TOKENS stay in-memory by
+# design: they are 5-minute single-use tokens that must not survive a restart.
 TOKENS: dict[str, float] = {}
 
 class CreateSession(BaseModel):
@@ -68,19 +70,19 @@ def create_session(body: CreateSession):
     if not questions:
         raise HTTPException(400, "No questions for this topic/difficulty")
     sid = str(uuid.uuid4())
-    SESSIONS[sid] = {
+    s = {
         "id": sid, "role": body.role, "topic": body.topic, "difficulty": body.difficulty,
         "candidate": body.candidate_name, "started_at": time.time(),
         "plan": questions, "index": 0, "answers": [], "followup_pending": None,
     }
-    s = SESSIONS[sid]
+    save_session(s)
     q = s["plan"][0]
     return {"session_id": sid, "total_questions": len(s["plan"]),
             "current_question": {"id": q["id"], "question": q["question"], "topic": q["topic"], "difficulty": q["difficulty"]}}
 
 @app.post("/api/sessions/{sid}/answer")
 def submit_answer(sid: str, body: SubmitAnswer):
-    s = SESSIONS.get(sid)
+    s = get_session(sid)
     if not s:
         raise HTTPException(404, "Session not found")
     pending = s.get("followup_pending")
@@ -89,6 +91,7 @@ def submit_answer(sid: str, body: SubmitAnswer):
         s["answers"][-1]["followup_answer"] = body.answer
         s["followup_pending"] = None
         s["index"] += 1
+        save_session(s)
         finished = s["index"] >= len(s["plan"])
         nq = None if finished else s["plan"][s["index"]]
         return {"kind": "followup_recorded", "finished": finished,
@@ -105,10 +108,12 @@ def submit_answer(sid: str, body: SubmitAnswer):
     followup = pick_followup(q, ev.missing) if ev.overall < 7.5 and ev.missing else None
     if followup:
         s["followup_pending"] = followup
+        save_session(s)
         return {"kind": "followup", "followup_question": followup, "evaluation": record["evaluation"],
                 "voice_analytics": analytics, "finished": False}
 
     s["index"] += 1
+    save_session(s)
     finished = s["index"] >= len(s["plan"])
     nq = None if finished else s["plan"][s["index"]]
     return {"kind": "scored", "evaluation": record["evaluation"], "voice_analytics": analytics,
@@ -117,7 +122,7 @@ def submit_answer(sid: str, body: SubmitAnswer):
 
 @app.get("/api/sessions/{sid}/report")
 def report(sid: str):
-    s = SESSIONS.get(sid)
+    s = get_session(sid)
     if not s:
         raise HTTPException(404, "Session not found")
     ans = s["answers"]

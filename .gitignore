@@ -6,3 +6,6 @@ node_modules/
 dist/
 *.log
 .DS_Store
+
+# VoiceHire interview session store (SQLite, runtime state)
+voicehire_sessions.db
