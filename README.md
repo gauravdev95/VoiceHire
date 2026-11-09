@@ -65,7 +65,8 @@ Or with Docker: `docker compose up --build`
 ## Roadmap
 - Phase 1 (done): core MVP — voice interview, 12+ questions, transcript, rubric evaluation
 - Phase 2 (done): adaptive follow-ups, evidence-based feedback, analytics, dashboard
-- Phase 3: PostgreSQL persistence, LLM-upgraded rubric text (OpenAI/Gemini), user accounts, interview history
+- Phase 3 (done, LLM rubric): LLM-upgraded rubric text (OpenAI/Gemini) — set `LLM_PROVIDER=gemini|openai` + its key in `backend/.env` (see `.env.example`); only the feedback prose is LLM-upgraded, scores and quoted evidence stay deterministic, and any provider failure falls back to the built-in rubric. 13 backend tests, incl. 7 offline LLM-stub tests.
+- Phase 3 (remaining): PostgreSQL persistence, user accounts, interview history
 
 ## Tests
 ```bash

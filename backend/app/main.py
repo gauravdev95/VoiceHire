@@ -12,13 +12,22 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.questions import QUESTIONS, ALL_TOPICS, get_questions
-from app.services.evaluator import evaluate, evaluation_to_dict
+from app.services.evaluator import evaluate, evaluation_to_dict, resolve_llm_provider
 from app.services.session_store import get_session, save_session
 from app.services.adaptive import next_question, pick_followup
 from app.services.analytics import analyze_answer
 from app.services import assemblyai_service
 
 app = FastAPI(title="VoiceHire AI", version="1.0.0")
+
+# Optional LLM rubric upgrade: None unless LLM_PROVIDER + its key are set
+# (backend/.env.example); deterministic evaluator is the default and the
+# fallback on any provider failure.
+_llm_provider = resolve_llm_provider(
+    settings.llm_provider,
+    gemini_api_key=settings.gemini_api_key,
+    openai_api_key=settings.openai_api_key,
+)
 app.add_middleware(CORSMiddleware, allow_origins=[settings.frontend_origin, "http://localhost:5173"],
                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
@@ -98,7 +107,7 @@ def submit_answer(sid: str, body: SubmitAnswer):
                 "next_question": None if not nq else {"id": nq["id"], "question": nq["question"], "topic": nq["topic"], "difficulty": nq["difficulty"]}}
 
     q = s["plan"][s["index"]]
-    ev = evaluate(q, body.answer)
+    ev = evaluate(q, body.answer, llm=_llm_provider)
     analytics = analyze_answer(body.answer, body.duration_sec, body.latency_sec)
     record = {"question_id": q["id"], "question": q["question"], "answer": body.answer,
               "evaluation": evaluation_to_dict(ev), "voice_analytics": analytics}
